@@ -2,10 +2,9 @@ import { Webhook } from "svix";
 import connectDB from "@/config/db";
 import User from "@/models/User";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request) {
-    try {
+export async function POST(req) {
         console.log("🔄 Webhook received");
         
         const wh = new Webhook(process.env.SIGNING_SECRET);
@@ -27,9 +26,9 @@ export async function POST(request) {
         // Prepare the user data to be saved in the database
         const userData = {
             _id: data.id,
-            email: data.email_addresses?.[0]?.email_address || "",
-            name: `${data.first_name || ""} ${data.last_name || ""}`.trim() || "Unknown User",
-            image: data.image_url || "",
+            email: data.email_addresses[0],
+            name: `${data.first_name} ${data.last_name}`,
+            image: data.image_url,
         };
 
         console.log("💾 Saving user data:", userData);
@@ -37,37 +36,24 @@ export async function POST(request) {
         await connectDB();
 
         switch (type) {
-            case "user.created":
-                console.log("✅ Creating new user");
-                const newUser = await User.create(userData);
-                console.log("🎉 User created successfully:", newUser);
+            case 'user.created':
+                await User.create(userData);
                 break;
             case "user.updated":
-                console.log("🔄 Updating user");
-                await User.findByIdAndUpdate(userData._id, userData, { upsert: true });
-                console.log("✅ User updated successfully");
+                await User.findByIdAndUpdate(data.id, userData);
                 break;
             case "user.deleted":
-                console.log("🗑️ Deleting user");
-                await User.findByIdAndDelete(userData._id);
-                console.log("✅ User deleted successfully");
+                await User.findByIdAndDelete(data);
                 break;
             default:
                 console.log("❓ Unknown webhook type:", type);
                 break;
         }
 
-        return NextResponse.json({ 
+        return NextRequest.json({ 
             message: "Event processed successfully", 
             type: type,
             userId: userData._id 
         });
 
-    } catch (error) {
-        console.error("❌ Webhook error:", error);
-        return NextResponse.json(
-            { error: "Webhook processing failed", details: error.message }, 
-            { status: 500 }
-        );
-    }
 }
