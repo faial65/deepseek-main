@@ -5,13 +5,16 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
-    const wh=new Webhook(process.env.SIGNING_SECRET)
-    const headerPayLoad=await headers()
-    const svixHeaders={
-        "svix-id": headerPayLoad.get("svix-id"),
-        "svix-timestamp": headerPayLoad.get("svix-timestamp"),
-        "svix-signature": headerPayLoad.get("svix-signature")
-    };
+    try {
+        console.log("🔄 Webhook received");
+        
+        const wh = new Webhook(process.env.SIGNING_SECRET);
+        const headerPayload = await headers();
+        const svixHeaders = {
+            "svix-id": headerPayload.get("svix-id"),
+            "svix-timestamp": headerPayload.get("svix-timestamp"),
+            "svix-signature": headerPayload.get("svix-signature")
+        };
 
         // Get the payload and verify it
         const payload = await request.json();
@@ -27,32 +30,32 @@ export async function POST(request) {
             email: data.email_addresses?.[0]?.email_address || "",
             name: `${data.first_name || ""} ${data.last_name || ""}`.trim() || "Unknown User",
             image: data.image_url || "",
-    };
+        };
 
         console.log("💾 Saving user data:", userData);
 
-    await connectDB();
+        await connectDB();
 
         switch (type) {
-        case "user.created":
+            case "user.created":
                 console.log("✅ Creating new user");
                 const newUser = await User.create(userData);
                 console.log("🎉 User created successfully:", newUser);
-            break;
-        case "user.updated":
+                break;
+            case "user.updated":
                 console.log("🔄 Updating user");
                 await User.findByIdAndUpdate(userData._id, userData, { upsert: true });
                 console.log("✅ User updated successfully");
-            break;
-        case "user.deleted":
+                break;
+            case "user.deleted":
                 console.log("🗑️ Deleting user");
-            await User.findByIdAndDelete(userData._id);
+                await User.findByIdAndDelete(userData._id);
                 console.log("✅ User deleted successfully");
-            break;
-        default:
+                break;
+            default:
                 console.log("❓ Unknown webhook type:", type);
-            break;
-    }
+                break;
+        }
 
         return NextResponse.json({ 
             message: "Event processed successfully", 
