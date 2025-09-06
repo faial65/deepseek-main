@@ -115,13 +115,13 @@ const PromptBox = ({isLoading, setIsLoading}) => {
 
   return (
     <form onSubmit={sendPrompt}
-    className={`w-full ${false?"max-w-3xl":"max-w-2xl"} bg-[#404045] p-4 
+    className={`w-full ${selectedChat?.messages.length > 0 ?"max-w-3xl":"max-w-2xl"} bg-[#404045] p-4 
     rounded-3xl mt-4 transition-all`}>
         <textarea
         onKeyDown={handleKeyDown}
          className='outline-none w-full bg-transparent 
         resize-none break-words overflow-hidden' 
-        rows={2} placeholder='Message DeepSeek' required
+        rows={2} placeholder='Message FaisalAI' required
         onChange={(e) => setPrompt(e.target.value)} value={prompt}/>
 
         <div className='flex items-center justify-between text-sm'>
