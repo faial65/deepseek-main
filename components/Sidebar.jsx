@@ -7,8 +7,16 @@ import ChatLabel from './ChatLabel';
 const Sidebar = ({expand,setExpand}) => {
 
   const {openSignIn} = useClerk();
-  const { user } = useAppContext();
+  const { user, createNewChat } = useAppContext();
   const [openMenu,setOpenMenu] =useState({id:0,open:false});
+
+  const handleNewChat = async () => {
+    try {
+      await createNewChat();
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+    }
+  };
 
   return (
     <div className={`flex flex-col justify-between bg-[#212327] pt-7 transition-all z-50 max-md:absolute
@@ -33,7 +41,9 @@ const Sidebar = ({expand,setExpand}) => {
                 </div>
             </div>
 
-              <button className={`mt-8 flex items-center justify-center cursor-pointer 
+              <button 
+                onClick={handleNewChat}
+                className={`mt-8 flex items-center justify-center cursor-pointer 
                 ${expand ? 'bg-primary hover:opacity-90 rounded-2xl gap-2 p-2.5 w-max' : 
                 'group relative h-9 w-9 mx-auto hover:bg-gray-500/30 rounded-lg'}`}>
                 <Image className={expand ? "w-6" : "w-7"} src={expand ? assets.chat_icon : assets.chat_icon_dull}
