@@ -74,6 +74,12 @@ export async function POST(req) {
             contextFromDocuments = await performFreeRAG(documentId, prompt, userId);
         }
 
+        // Clean messages for Groq API (remove MongoDB fields like _id, timestamp)
+        const cleanMessages = messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+        }));
+
         if (contextFromDocuments) {
             // Enhance the prompt with document context
             const enhancedPrompt = `You have access to relevant content from the user's document. Use this context to provide accurate and specific answers.
@@ -85,14 +91,15 @@ USER QUESTION: ${prompt}
 
 Please provide a comprehensive answer based on the document context. If the answer cannot be found in the provided context, please mention that.`;
 
-            messages = [{ role: "user", content: enhancedPrompt }];
+            // Use only the enhanced prompt for better focus
+            cleanMessages.splice(0, cleanMessages.length, { role: "user", content: enhancedPrompt });
         }
 
         console.log("Groq API: Calling Groq API...");
 
         // Call the Groq API to get a chat completion
         const completion = await groq.chat.completions.create({
-            messages: messages,
+            messages: cleanMessages,
             model: "llama-3.1-8b-instant",
             temperature: 0.7,
             max_tokens: 1024
@@ -170,14 +177,29 @@ async function performFreeRAG(documentId, query, userId) {
         
         console.log("Free RAG: Using vocabulary:", vocabulary.slice(0, 5), "...");
         
+        // Create query embedding - try both original query and translated keywords
+        const queryWords = query.toLowerCase().split(/\s+/);
         const queryEmbedding = generateSimpleEmbedding(query, vocabulary);
         
-        // Calculate cosine similarity for each chunk
-        const similarities = document.chunks.map((chunk, index) => ({
-            index,
-            chunk,
-            similarity: cosineSimilarity(queryEmbedding, chunk.embedding)
-        }));
+        // Also try with common user guide keywords in Arabic
+        const userGuideKeywords = ['دليل', 'قسم', 'فصل', 'شرح', 'استخدام', 'إرشادات'];
+        const keywordEmbedding = generateSimpleEmbedding(userGuideKeywords.join(' '), vocabulary);
+        
+        console.log("Free RAG: Query embedding:", queryEmbedding.slice(0, 5));
+        console.log("Free RAG: Keyword embedding:", keywordEmbedding.slice(0, 5));
+        
+        // Calculate cosine similarity for each chunk using both embeddings
+        const similarities = document.chunks.map((chunk, index) => {
+            const querySim = cosineSimilarity(queryEmbedding, chunk.embedding);
+            const keywordSim = cosineSimilarity(keywordEmbedding, chunk.embedding);
+            const maxSim = Math.max(querySim, keywordSim);
+            
+            return {
+                index,
+                chunk,
+                similarity: maxSim
+            };
+        });
         
         // Sort by similarity and get top 5 chunks
         similarities.sort((a, b) => b.similarity - a.similarity);
@@ -187,9 +209,19 @@ async function performFreeRAG(documentId, query, userId) {
         
         // Combine relevant chunks (very low threshold for simple embeddings)
         const relevantContext = topChunks
-            .filter(item => item.similarity > 0.01) // Very low threshold
+            .filter(item => item.similarity > 0.001) // Even lower threshold
             .map(item => item.chunk.text)
             .join('\n\n');
+            
+        // If no content found with similarity, try taking first few chunks as fallback
+        if (relevantContext.length === 0) {
+            console.log("Free RAG: No similar content found, using first 3 chunks as fallback");
+            const fallbackContext = document.chunks.slice(0, 3)
+                .map(chunk => chunk.text)
+                .join('\n\n');
+            console.log("Free RAG: Fallback context length:", fallbackContext.length);
+            return fallbackContext;
+        }
             
         console.log("Free RAG: Retrieved context length:", relevantContext.length);
         
