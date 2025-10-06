@@ -12,6 +12,7 @@ export const AppContextProvider = ({ children }) => {
 
   const [chats,setChats]=useState([]);
   const [selectedChat,setSelectedChat]=useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   const createNewChat=async()=>{
     try{
@@ -94,6 +95,8 @@ useEffect(()=>{
     setChats,
     selectedChat,
     setSelectedChat,
+    selectedDocument,
+    setSelectedDocument,
     fetchUsersChats,
     createNewChat
   }

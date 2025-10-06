@@ -11,11 +11,6 @@ const groq = new OpenAI({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// OpenAI for embeddings
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
-
 export async function POST(req) {
     try {
         // Check if API key is configured
@@ -48,7 +43,7 @@ export async function POST(req) {
             }, { status: 400 });
         }
 
-        // Connect to database
+        // Connect to DB
         await connectDB();
 
         // Find the chat
@@ -62,44 +57,26 @@ export async function POST(req) {
 
         console.log("Groq API: Found chat with", data.messages.length, "existing messages");
 
-        let contextFromDocuments = "";
-        
-        // If documentId is provided, perform RAG
-        if (documentId) {
-            console.log("Groq API: Performing RAG with document:", documentId);
-            contextFromDocuments = await performRAG(documentId, prompt, userId);
-        }
-
-        // Update chat name if this is the first message (before adding new message)
-        const isFirstMessage = data.messages.length === 0;
-
-        // Create user message
+        // Add user message to chat
         const userMessage = {
             role: "user",
             content: prompt,
             timestamp: new Date()
         };
-
-        // Add user message to chat
         data.messages.push(userMessage);
 
-        // Update chat name if it's the first message
-        if (isFirstMessage) {
-            const chatName = documentId ? 
-                `Document Q&A: ${prompt.slice(0, 30)}...` :
-                prompt.slice(0, 50) + (prompt.length > 50 ? "..." : "");
-            data.name = chatName;
-            console.log("Groq API: Updated chat name to:", data.name);
+        let messages = [...data.messages];
+
+        // Perform free RAG if document is selected
+        let contextFromDocuments = "";
+        if (documentId) {
+            console.log("Groq API: Performing free RAG with document:", documentId);
+            contextFromDocuments = await performFreeRAG(documentId, prompt, userId);
         }
 
-        console.log("Groq API: Calling Groq API...");
-
-        // Prepare messages for the AI
-        let messages = [{ role: "user", content: prompt }];
-        
-        // If we have document context, enhance the prompt
         if (contextFromDocuments) {
-            const enhancedPrompt = `Based on the following document context, please answer the user's question:
+            // Enhance the prompt with document context
+            const enhancedPrompt = `You have access to relevant content from the user's document. Use this context to provide accurate and specific answers.
 
 DOCUMENT CONTEXT:
 ${contextFromDocuments}
@@ -111,10 +88,12 @@ Please provide a comprehensive answer based on the document context. If the answ
             messages = [{ role: "user", content: enhancedPrompt }];
         }
 
+        console.log("Groq API: Calling Groq API...");
+
         // Call the Groq API to get a chat completion
         const completion = await groq.chat.completions.create({
             messages: messages,
-            model: "llama-3.1-8b-instant", // Updated to supported model
+            model: "llama-3.1-8b-instant",
             temperature: 0.7,
             max_tokens: 1024
         });
@@ -151,18 +130,10 @@ Please provide a comprehensive answer based on the document context. If the answ
     }
 }
 
-// RAG Helper Function
-async function performRAG(documentId, query, userId) {
+// FREE RAG Helper Function using local embeddings
+async function performFreeRAG(documentId, query, userId) {
     try {
-        console.log("RAG: Starting retrieval for query:", query);
-        
-        // Generate embedding for the query
-        const queryEmbedding = await openai.embeddings.create({
-            model: "text-embedding-ada-002",
-            input: query
-        });
-        
-        const queryVector = queryEmbedding.data[0].embedding;
+        console.log("Free RAG: Starting retrieval for query:", query);
         
         // Find the document
         const document = await Document.findOne({ 
@@ -172,46 +143,87 @@ async function performRAG(documentId, query, userId) {
         });
         
         if (!document) {
-            console.log("RAG: Document not found");
+            console.log("Free RAG: Document not found");
             return "";
         }
         
-        console.log("RAG: Found document with", document.chunks.length, "chunks");
+        console.log("Free RAG: Found document with", document.chunks.length, "chunks");
+        
+        // Generate query embedding using the same approach as upload-lite (multi-language)
+        const allChunks = document.chunks;
+        const allText = allChunks.map(chunk => chunk.text).join(' ');
+        const words = allText.toLowerCase()
+            .replace(/[^\w\s\u0600-\u06FF]/g, '') // Keep Arabic characters
+            .split(/\s+/)
+            .filter(word => word.length > 2);
+        
+        // Use the same vocabulary extraction as upload-lite (top 20 words)
+        const wordCount = {};
+        words.forEach(word => {
+            wordCount[word] = (wordCount[word] || 0) + 1;
+        });
+        
+        const vocabulary = Object.entries(wordCount)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 20)
+            .map(([word]) => word);
+        
+        console.log("Free RAG: Using vocabulary:", vocabulary.slice(0, 5), "...");
+        
+        const queryEmbedding = generateSimpleEmbedding(query, vocabulary);
         
         // Calculate cosine similarity for each chunk
         const similarities = document.chunks.map((chunk, index) => ({
             index,
             chunk,
-            similarity: cosineSimilarity(queryVector, chunk.embedding)
+            similarity: cosineSimilarity(queryEmbedding, chunk.embedding)
         }));
         
         // Sort by similarity and get top 5 chunks
         similarities.sort((a, b) => b.similarity - a.similarity);
         const topChunks = similarities.slice(0, 5);
         
-        console.log("RAG: Top similarities:", topChunks.map(c => c.similarity));
+        console.log("Free RAG: Top similarities:", topChunks.map(c => c.similarity));
         
-        // Combine relevant chunks
+        // Combine relevant chunks (very low threshold for simple embeddings)
         const relevantContext = topChunks
-            .filter(item => item.similarity > 0.7) // Only include highly relevant chunks
+            .filter(item => item.similarity > 0.01) // Very low threshold
             .map(item => item.chunk.text)
             .join('\n\n');
             
-        console.log("RAG: Retrieved context length:", relevantContext.length);
+        console.log("Free RAG: Retrieved context length:", relevantContext.length);
         
         return relevantContext;
         
     } catch (error) {
-        console.error("RAG Error:", error);
+        console.error("Free RAG Error:", error);
         return "";
     }
 }
 
+// Simple embedding generation (same as upload-lite) - supports Arabic
+function generateSimpleEmbedding(text, vocabulary) {
+    const words = text.toLowerCase()
+        .replace(/[^\w\s\u0600-\u06FF]/g, '') // Keep Arabic characters
+        .split(/\s+/)
+        .filter(word => word.length > 2);
+    
+    const wordCount = {};
+    words.forEach(word => {
+        wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+    
+    return vocabulary.map(word => wordCount[word] || 0);
+}
+
 // Helper function to calculate cosine similarity
 function cosineSimilarity(vectorA, vectorB) {
-    if (vectorA.length !== vectorB.length) {
-        throw new Error("Vectors must have the same length");
-    }
+    // Ensure both vectors have the same length
+    const maxLength = Math.max(vectorA.length, vectorB.length);
+    
+    // Pad shorter vector with zeros
+    while (vectorA.length < maxLength) vectorA.push(0);
+    while (vectorB.length < maxLength) vectorB.push(0);
     
     let dotProduct = 0;
     let normA = 0;
@@ -223,5 +235,6 @@ function cosineSimilarity(vectorA, vectorB) {
         normB += vectorB[i] * vectorB[i];
     }
     
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    return denominator > 0 ? dotProduct / denominator : 0;
 }

@@ -6,13 +6,14 @@ import Sidebar from "@/components/Sidebar";
 import PromptBox from "@/components/Promptbox";
 import Message from "@/components/Message";
 import { useAppContext } from "@/context/AppContext";
+import QuickTest from "@/components/QuickTest";
 
 export default function Home() {
 
   const [expand, setExpand] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const {selectedChat} = useAppContext();
+  const {selectedChat, selectedDocument} = useAppContext();
   const containerRef = useRef(null);
 
   useEffect(()=>{
@@ -49,7 +50,24 @@ export default function Home() {
             <Image src={assets.logo_icon} alt="Logo Icon" className="h-16"/>
             <p className="text-2xl font-medium">Welcome to FaisalAI</p>
           </div>
-          <p className="text-sm mt-2">How can I help you with</p>
+          <p className="text-sm mt-2">
+            {selectedDocument 
+              ? `Ask questions about: ${selectedDocument.filename}` 
+              : "How can I help you with"
+            }
+          </p>
+          {selectedDocument && (
+            <div className="mt-4 p-4 bg-blue-600/20 border border-blue-600/30 rounded-xl max-w-md">
+              <div className="flex items-center gap-2 mb-2">
+                <Image src={assets.copy_icon} alt="Document" className="w-5 h-5 opacity-80" />
+                <span className="text-blue-400 font-medium">Document Loaded</span>
+              </div>
+              <p className="text-white/80 text-sm">{selectedDocument.filename}</p>
+              <p className="text-white/60 text-xs mt-1">
+                {selectedDocument.chunks?.length || 0} sections available for Q&A
+              </p>
+            </div>
+          )}
           </>
         ):
         (
@@ -87,6 +105,8 @@ export default function Home() {
         <PromptBox isLoading={isLoading} setIsLoading={setIsLoading} />
         <p className="text-xs absolute bottom-1 text-gray-500">AI- generated, for reference only</p>
 
+        {/* Debug Panel */}
+        <QuickTest />
 
         </div>
       </div>

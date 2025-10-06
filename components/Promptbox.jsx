@@ -8,7 +8,7 @@ import axios from 'axios';
 const PromptBox = ({isLoading, setIsLoading}) => {
 
     const [prompt, setPrompt] = useState  ('');
-    const { user, chats, setChats, selectedChat, setSelectedChat, createNewChat } = useAppContext();
+    const { user, chats, setChats, selectedChat, setSelectedChat, selectedDocument, createNewChat } = useAppContext();
 
     const handleKeyDown=(e)=>{
         if(e.key==='Enter' && !e.shiftKey){
@@ -64,9 +64,10 @@ const PromptBox = ({isLoading, setIsLoading}) => {
                 messages:[...prev.messages, userPrompt]
             } : prev);
 
-            const {data}=await axios.post('/api/chat/groq',{
+            const {data}=await axios.post('/api/chat/groq-free',{
                 chatId:selectedChat._id,
-                prompt: promptCopy
+                prompt: promptCopy,
+                documentId: selectedDocument?._id
             })
 
             console.log("AI API response:", data);

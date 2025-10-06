@@ -4,11 +4,15 @@ import Image from 'next/image'
 import { useClerk, UserButton } from '@clerk/nextjs';
 import { useAppContext } from '@/context/AppContext';
 import ChatLabel from './ChatLabel';
+import DocumentUploadTest from './DocumentUploadTest';
+import DocumentList from './DocumentList';
 const Sidebar = ({expand,setExpand}) => {
 
   const {openSignIn} = useClerk();
-  const { user, createNewChat } = useAppContext();
+  const { user, createNewChat, selectedDocument, setSelectedDocument } = useAppContext();
   const [openMenu,setOpenMenu] =useState({id:0,open:false});
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showDocumentList, setShowDocumentList] = useState(false);
 
   const handleNewChat = async () => {
     try {
@@ -60,6 +64,46 @@ const Sidebar = ({expand,setExpand}) => {
                 <p className='my-1'>Recents</p>
                 <ChatLabel openMenu={openMenu} setOpenMenu={setOpenMenu} />
               </div>
+
+              {/* Document Section */}
+              <div className={`mt-6 text-white/25 text-sm ${expand ? 'block' : 'hidden'}`}>
+                <p className='my-1'>Documents</p>
+                
+                {selectedDocument && (
+                  <div className="bg-blue-600/20 border border-blue-600/30 rounded-lg p-3 mb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-blue-400 font-medium text-xs mb-1">Active Document</p>
+                        <p className="text-white/80 text-sm truncate">{selectedDocument.filename}</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedDocument(null)}
+                        className="ml-2 p-1 hover:bg-white/10 rounded"
+                      >
+                        <Image src={assets.sidebar_close_icon} alt="Remove" className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="w-full flex items-center gap-2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm"
+                  >
+                    <Image src={assets.copy_icon} alt="Upload" className="w-4 h-4" />
+                    Upload Document
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowDocumentList(true)}
+                    className="w-full flex items-center gap-2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm"
+                  >
+                    <Image src={assets.search_icon} alt="Browse" className="w-4 h-4" />
+                    Browse Documents
+                  </button>
+                </div>
+              </div>
         </div>
         <div>
           <div className={`flex items-center cursor-pointer relative group ${expand ? 
@@ -90,6 +134,26 @@ const Sidebar = ({expand,setExpand}) => {
             {expand && <span>My Profile</span> }
           </div>
         </div>
+
+        {/* Document Upload Modal */}
+        <DocumentUploadTest
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onDocumentUploaded={(doc) => {
+            console.log('Document uploaded:', doc);
+            // Optionally auto-select the uploaded document
+            // setSelectedDocument(doc);
+          }}
+        />
+
+        {/* Document List Modal */}
+        <DocumentList
+          isOpen={showDocumentList}
+          onClose={() => setShowDocumentList(false)}
+          onDocumentSelect={(doc) => {
+            setSelectedDocument(doc);
+          }}
+        />
     </div>
   )
 }
