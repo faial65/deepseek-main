@@ -26,9 +26,6 @@ export async function POST(req) {
         // Extract chatId and prompt from the request body
         const { chatId, prompt, documentId } = await req.json();
 
-        console.log("Groq API: Received request for chatId:", chatId, "from userId:", userId);
-        console.log("Groq API: Document ID:", documentId);
-
         if (!userId) {
             return NextResponse.json({
                 success: false,

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useClerk, UserButton } from '@clerk/nextjs';
 import { useAppContext } from '@/context/AppContext';
 import ChatLabel from './ChatLabel';
-import DocumentUploadTest from './DocumentUploadTest';
+import DocumentUpload from './DocumentUpload';
 import DocumentList from './DocumentList';
 const Sidebar = ({expand,setExpand}) => {
 
@@ -27,7 +27,17 @@ const Sidebar = ({expand,setExpand}) => {
     max-md:h-screen ${expand ? 'p-4 w-64' : 'md:w-20 w-0 max-md:overflow-hidden'}`}>
         <div>
             <div className={`flex ${expand ? 'flex-row gap-10' : 'flex-col items-center gap-8'}`}>
-                <Image className={expand? "w-36" : "w-10"} src={expand? assets.logo_text : assets.logo_icon} alt="Sidebar Image" />
+                <div className={`${expand ? 'w-36' : 'w-10'} flex items-center justify-center`}>
+                    {expand ? (
+                        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                            FAISALAI
+                        </h1>
+                    ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">FA</span>
+                        </div>
+                    )}
+                </div>
 
                 <div onClick={() => expand? setExpand(false) : setExpand(true)}
                 className='group relative flex items-center justify-center hover:bg-gray-500/20 transition-all
@@ -136,13 +146,12 @@ const Sidebar = ({expand,setExpand}) => {
         </div>
 
         {/* Document Upload Modal */}
-        <DocumentUploadTest
+        <DocumentUpload
           isOpen={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onDocumentUploaded={(doc) => {
-            console.log('Document uploaded:', doc);
             // Optionally auto-select the uploaded document
-            // setSelectedDocument(doc);
+            setSelectedDocument(doc);
           }}
         />
 

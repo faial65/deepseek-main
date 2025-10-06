@@ -30,7 +30,6 @@ const PromptBox = ({isLoading, setIsLoading}) => {
                 
                 // Try to create a new chat if none exists
                 if(chats.length === 0) {
-                    console.log('No chats available, creating new chat...');
                     toast.error('Creating new chat...');
                     await createNewChat();
                     return; // Exit and let user try again
@@ -38,8 +37,6 @@ const PromptBox = ({isLoading, setIsLoading}) => {
                 
                 return toast.error('No chat selected');
             }
-
-            console.log('Sending prompt to chat:', selectedChat._id);
 
             setIsLoading(true);
             setPrompt('');
@@ -70,11 +67,7 @@ const PromptBox = ({isLoading, setIsLoading}) => {
                 documentId: selectedDocument?._id
             })
 
-            console.log("AI API response:", data);
-
             if(data.success){
-                console.log("AI response received:", data.message);
-                
                 const message = data.message;
                 const messageTokens = message.split(' ');
                 let assistantMessage = {

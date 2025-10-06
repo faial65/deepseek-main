@@ -6,7 +6,6 @@ import Sidebar from "@/components/Sidebar";
 import PromptBox from "@/components/Promptbox";
 import Message from "@/components/Message";
 import { useAppContext } from "@/context/AppContext";
-import QuickTest from "@/components/QuickTest";
 
 export default function Home() {
 
@@ -47,7 +46,9 @@ export default function Home() {
         {messages.length === 0?(
           <>
           <div className="flex items-center gap-3">
-            <Image src={assets.logo_icon} alt="Logo Icon" className="h-16"/>
+            <div className="h-16 w-16 rounded-xl bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">FA</span>
+            </div>
             <p className="text-2xl font-medium">Welcome to FaisalAI</p>
           </div>
           <p className="text-sm mt-2">
@@ -56,18 +57,15 @@ export default function Home() {
               : "How can I help you with"
             }
           </p>
-          {selectedDocument && (
+                    {selectedDocument && (
             <div className="mt-4 p-4 bg-blue-600/20 border border-blue-600/30 rounded-xl max-w-md">
               <div className="flex items-center gap-2 mb-2">
                 <Image src={assets.copy_icon} alt="Document" className="w-5 h-5 opacity-80" />
                 <span className="text-blue-400 font-medium">Document Loaded</span>
               </div>
               <p className="text-white/80 text-sm">{selectedDocument.filename}</p>
-              <p className="text-white/60 text-xs mt-1">
-                {selectedDocument.chunks?.length || 0} sections available for Q&A
-              </p>
             </div>
-          )}
+          )}"
           </>
         ):
         (
@@ -82,8 +80,9 @@ export default function Home() {
             ))}
             {isLoading && (
               <div className="flex gap-4 max-w-3xl w-full py-3">
-                <Image className="h-9 w-9 p-1 border border-white/15 rounded-full"
-                src={assets.logo_icon} alt="Logo Icon" />
+                <div className="h-9 w-9 p-1 border border-white/15 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">FA</span>
+                </div>
                 <div className="loader flex items-center justify-center gap-1">
                     <div className="w-1 h-1 rounded-full bg-white/50 animate-bounce">
 
@@ -105,8 +104,7 @@ export default function Home() {
         <PromptBox isLoading={isLoading} setIsLoading={setIsLoading} />
         <p className="text-xs absolute bottom-1 text-gray-500">AI- generated, for reference only</p>
 
-        {/* Debug Panel */}
-        <QuickTest />
+
 
         </div>
       </div>

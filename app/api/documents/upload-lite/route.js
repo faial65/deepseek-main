@@ -2,33 +2,23 @@ import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/config/db";
 import Document from "@/models/Document";
-import { writeFile, mkdir } from "fs/promises";
-import { readFile } from "fs/promises";
-import path from "path";
 import mammoth from "mammoth";
 
 export async function POST(request) {
-    console.log("📤 Document upload started (memory-optimized)");
-    
     try {
         const { userId } = getAuth(request);
-        console.log("👤 User ID:", userId);
 
         if (!userId) {
-            console.log("❌ No user ID found");
             return NextResponse.json({ 
                 success: false, 
                 message: "Unauthorized" 
             }, { status: 401 });
         }
 
-        console.log("📋 Getting form data...");
         const formData = await request.formData();
         const file = formData.get("file");
-        console.log("📄 File received:", file?.name, file?.type, file?.size);
 
         if (!file) {
-            console.log("❌ No file in form data");
             return NextResponse.json({ 
                 success: false, 
                 message: "No file uploaded" 
@@ -43,38 +33,23 @@ export async function POST(request) {
         ];
 
         if (!allowedTypes.includes(file.type)) {
-            console.log("❌ Invalid file type:", file.type);
             return NextResponse.json({ 
                 success: false, 
                 message: "Currently supporting DOCX, DOC, and TXT files only. PDF support coming soon!" 
             }, { status: 400 });
         }
 
-        console.log("📁 Creating uploads directory...");
-        const uploadsDir = path.join(process.cwd(), "uploads");
-        try {
-            await mkdir(uploadsDir, { recursive: true });
-            console.log("✅ Uploads directory ready");
-        } catch (error) {
-            console.log("📁 Uploads directory already exists or error:", error.message);
-        }
-
-        console.log("💾 Saving file...");
+        console.log("� Extracting text directly from memory...");
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const filename = `${Date.now()}-${file.name}`;
-        const filepath = path.join(uploadsDir, filename);
-        
-        await writeFile(filepath, buffer);
-        console.log("✅ File saved to:", filepath);
-
-        console.log("🔍 Extracting text...");
         let extractedText = "";
         
         try {
             if (file.type.includes("word") || file.type.includes("document")) {
-                console.log("📝 Processing Word document...");
-                extractedText = await extractWordText(filepath);
+                console.log("📝 Processing Word document from buffer...");
+                const result = await mammoth.extractRawText({ buffer });
+                extractedText = result.value;
+                console.log("✅ Word document parsed successfully, text length:", extractedText.length);
             } else if (file.type === "text/plain") {
                 console.log("📝 Processing text file...");
                 extractedText = buffer.toString("utf-8");
@@ -91,29 +66,23 @@ export async function POST(request) {
         }
 
         if (!extractedText.trim()) {
-            console.log("❌ No text extracted");
             return NextResponse.json({ 
                 success: false, 
                 message: "Could not extract text from the document" 
             }, { status: 400 });
         }
 
-        console.log("🔪 Chunking document (optimized)...");
         const chunks = chunkTextOptimized(extractedText);
-        console.log("✅ Created", chunks.length, "chunks");
 
-        console.log("🧠 Generating simple embeddings...");
         const chunksWithEmbeddings = await generateMemoryEfficientEmbeddings(chunks);
-        console.log("✅ Embeddings generated");
 
-        console.log("💽 Saving to database...");
         await connectDB();
         
         const document = new Document({
             userId,
             filename: file.name,
             originalFilename: file.name,
-            filepath: filename,
+            filepath: `memory-${Date.now()}-${file.name}`, // Virtual path for serverless
             fileSize: file.size,
             mimeType: file.type,
             extractedText,
@@ -122,7 +91,6 @@ export async function POST(request) {
         });
 
         await document.save();
-        console.log("✅ Document saved to database with ID:", document._id);
 
         return NextResponse.json({
             success: true,
@@ -136,26 +104,11 @@ export async function POST(request) {
         });
 
     } catch (error) {
-        console.error("❌ Document upload error:", error);
-        console.error("❌ Error stack:", error.stack);
         return NextResponse.json({ 
             success: false, 
             message: error.message || "Failed to upload document",
             error: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 });
-    }
-}
-
-// Helper function to extract text from Word documents
-async function extractWordText(filepath) {
-    try {
-        console.log("📝 Reading Word document...");
-        const result = await mammoth.extractRawText({ path: filepath });
-        console.log("✅ Word document parsed successfully, text length:", result.value.length);
-        return result.value;
-    } catch (error) {
-        console.error("❌ Word extraction error:", error);
-        throw new Error(`Failed to extract text from Word document: ${error.message}`);
     }
 }
 
@@ -166,10 +119,9 @@ function chunkTextOptimized(text, chunkSize = 300, overlap = 50) {
     let maxChunks = 20;
     
     // Adjust for very large documents
-    if (textLength > 100000) { // 100K+ characters (like your 377K document)
+    if (textLength > 100000) { // 100K+ characters
         finalChunkSize = 2000; // Larger chunks for better context
         maxChunks = Math.min(100, Math.floor(textLength / finalChunkSize)); // More chunks
-        console.log(`📄 Large document detected (${textLength} chars), using ${finalChunkSize} char chunks, max ${maxChunks} chunks`);
     } else if (textLength > 50000) { // 50K+ characters
         finalChunkSize = 1000;
         maxChunks = 30;
@@ -221,8 +173,6 @@ async function generateMemoryEfficientEmbeddings(chunks) {
             .replace(/[^\w\s\u0600-\u06FF]/g, '') // Keep Arabic characters
             .split(/\s+/)
             .filter(word => word.length > 2);
-            
-        console.log(`📚 Found ${words.length} total words`);
         
         // Get most frequent words from the document itself
         const wordCount = {};
@@ -234,12 +184,8 @@ async function generateMemoryEfficientEmbeddings(chunks) {
             .sort(([,a], [,b]) => b - a)
             .slice(0, 20) // Use top 20 words instead of 10
             .map(([word]) => word);
-            
-        console.log(`🔤 Using vocabulary: ${vocabulary.slice(0, 5).join(', ')}... (${vocabulary.length} words)`);
         
         const chunksWithEmbeddings = chunks.map((chunk, index) => {
-            console.log(`🔢 Processing chunk ${index + 1}/${chunks.length}`);
-            
             // Create embedding based on word frequencies in this chunk
             const chunkWords = chunk.text.toLowerCase()
                 .replace(/[^\w\s\u0600-\u06FF]/g, '')
@@ -261,10 +207,8 @@ async function generateMemoryEfficientEmbeddings(chunks) {
             };
         });
         
-        console.log("✅ Memory-efficient embeddings generated");
         return chunksWithEmbeddings;
     } catch (error) {
-        console.error("❌ Embedding generation error:", error);
         throw new Error(`Failed to generate embeddings: ${error.message}`);
     }
 }
