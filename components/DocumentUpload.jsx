@@ -52,14 +52,13 @@ const DocumentUpload = ({ isOpen, onClose, onDocumentUploaded }) => {
 
         // Validate file type
         const allowedTypes = [
-            'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/msword',
             'text/plain'
         ];
 
         if (!allowedTypes.includes(file.type)) {
-            toast.error('Please upload PDF, DOCX, DOC, or TXT files only');
+            toast.error('Please upload DOCX, DOC, or TXT files only');
             return;
         }
 
@@ -69,8 +68,8 @@ const DocumentUpload = ({ isOpen, onClose, onDocumentUploaded }) => {
             const formData = new FormData();
             formData.append('file', file);
 
-            // Use free version by default
-            const response = await axios.post('/api/documents/upload-free', formData, {
+            // Use the lite upload endpoint
+            const response = await axios.post('/api/documents/upload-lite', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -84,7 +83,6 @@ const DocumentUpload = ({ isOpen, onClose, onDocumentUploaded }) => {
                 toast.error(response.data.message || 'Upload failed');
             }
         } catch (error) {
-            console.error('Upload error:', error);
             toast.error(error.response?.data?.message || 'Upload failed');
         } finally {
             setIsUploading(false);
@@ -154,7 +152,6 @@ const DocumentUpload = ({ isOpen, onClose, onDocumentUploaded }) => {
                 <div className="mt-4 text-sm text-white/60">
                     <p className="mb-2">Supported formats:</p>
                     <ul className="list-disc list-inside space-y-1">
-                        <li>PDF documents (.pdf)</li>
                         <li>Word documents (.docx, .doc)</li>
                         <li>Text files (.txt)</li>
                     </ul>
