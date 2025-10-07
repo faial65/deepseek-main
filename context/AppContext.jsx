@@ -13,6 +13,27 @@ export const AppContextProvider = ({ children }) => {
   const [chats,setChats]=useState([]);
   const [selectedChat,setSelectedChat]=useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [isLoadingDocument, setIsLoadingDocument] = useState(true);
+
+  // Load the default document on app start
+  useEffect(() => {
+    const loadDefaultDocument = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await axios.get('/api/documents/default');
+        if (response.data.success && response.data.document) {
+          setSelectedDocument(response.data.document);
+        }
+      } catch (error) {
+        console.log('Default document not found or error loading it');
+      } finally {
+        setIsLoadingDocument(false);
+      }
+    };
+    
+    loadDefaultDocument();
+  }, [user]);
 
   const createNewChat=async()=>{
     try{
@@ -97,6 +118,7 @@ useEffect(()=>{
     setSelectedChat,
     selectedDocument,
     setSelectedDocument,
+    isLoadingDocument,
     fetchUsersChats,
     createNewChat
   }

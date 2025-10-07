@@ -53,19 +53,20 @@ export default function Home() {
           </div>
           <p className="text-sm mt-2">
             {selectedDocument 
-              ? `Ask questions about: ${selectedDocument.filename}` 
-              : "How can I help you with"
+              ? `Ask me anything about: ${selectedDocument.filename}` 
+              : "Loading knowledge base..."
             }
           </p>
-                    {selectedDocument && (
-            <div className="mt-4 p-4 bg-blue-600/20 border border-blue-600/30 rounded-xl max-w-md">
+          {selectedDocument && (
+            <div className="mt-4 p-4 bg-green-600/20 border border-green-600/30 rounded-xl max-w-md">
               <div className="flex items-center gap-2 mb-2">
-                <Image src={assets.copy_icon} alt="Document" className="w-5 h-5 opacity-80" />
-                <span className="text-blue-400 font-medium">Document Loaded</span>
+                <span className="text-2xl">📚</span>
+                <span className="text-green-400 font-medium">Knowledge Base Ready</span>
               </div>
               <p className="text-white/80 text-sm">{selectedDocument.filename}</p>
+              <p className="text-white/60 text-xs mt-1">Ask me anything about this document</p>
             </div>
-          )}"
+          )}
           </>
         ):
         (
@@ -102,9 +103,7 @@ export default function Home() {
         )
         }
         <PromptBox isLoading={isLoading} setIsLoading={setIsLoading} />
-        <p className="text-xs absolute bottom-1 text-gray-500">AI- generated, for reference only</p>
-
-
+        <div className="text-xs text-center mt-2 text-gray-500">AI-generated, for reference only</div>
 
         </div>
       </div>

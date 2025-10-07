@@ -115,6 +115,43 @@ Please provide a comprehensive answer based on the document context. If the answ
         // Add AI message to chat
         data.messages.push(aiMessage);
 
+        // Auto-generate chat name if this is the first user message (excluding the new user message, should have 2 messages total)
+        if (data.messages.length === 2 && data.name === "New Chat") {
+            try {
+                console.log("Groq API: Generating automatic chat name for first message");
+                
+                const nameCompletion = await groq.chat.completions.create({
+                    messages: [{ 
+                        role: "user", 
+                        content: `Generate a short, concise title (maximum 4-6 words) for a chat conversation based on this user question. The title should capture the main topic or intent. Only respond with the title, nothing else.
+
+User question: "${prompt}"
+
+Title:` 
+                    }],
+                    model: "llama-3.1-8b-instant",
+                    temperature: 0.3,
+                    max_tokens: 20
+                });
+
+                let generatedName = nameCompletion.choices[0].message.content.trim();
+                
+                // Clean up the generated name
+                generatedName = generatedName.replace(/['"]/g, '').replace(/[.!?]+$/, '');
+                
+                // Fallback if the generated name is too long or empty
+                if (generatedName && generatedName.length <= 50) {
+                    data.name = generatedName;
+                    console.log("Groq API: Auto-generated chat name:", generatedName);
+                } else {
+                    console.log("Groq API: Generated name was invalid, keeping 'New Chat'");
+                }
+            } catch (nameError) {
+                console.error("Groq API: Error generating chat name:", nameError);
+                // Continue without failing the main request
+            }
+        }
+
         // Save the updated chat
         await data.save();
 
@@ -122,7 +159,8 @@ Please provide a comprehensive answer based on the document context. If the answ
 
         return NextResponse.json({
             success: true,
-            message: aiMessage.content
+            message: aiMessage.content,
+            chatName: data.name // Include the chat name in response for real-time UI update
         });
 
     } catch (error) {

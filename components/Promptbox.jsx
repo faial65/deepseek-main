@@ -81,6 +81,22 @@ const PromptBox = ({isLoading, setIsLoading}) => {
                     messages:[...prev.messages, assistantMessage]
                 } : prev);
                 
+                // Handle automatic chat naming if provided
+                if (data.chatName && data.chatName !== "New Chat") {
+                    // Update the selected chat name
+                    setSelectedChat(prev=> prev ? {
+                        ...prev,
+                        name: data.chatName
+                    } : prev);
+                    
+                    // Update the chat in the chats list
+                    setChats(prevChats => prevChats.map(chat => 
+                        chat._id === selectedChat._id 
+                            ? { ...chat, name: data.chatName }
+                            : chat
+                    ));
+                }
+                
                 for(let i=0; i<messageTokens.length; i++){
                     setTimeout(()=>{
                         assistantMessage.content = messageTokens.slice(0,i+1).join(' ');
