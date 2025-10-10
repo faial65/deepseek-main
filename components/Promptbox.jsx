@@ -136,15 +136,17 @@ const PromptBox = ({isLoading, setIsLoading}) => {
 
         <div className='flex items-center justify-between text-sm'>
             <div className='flex items-center gap-2'>
-                <p className='flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-1 
-                rounded-full cursor-pointer hover:bg-gray-500/20 transition'>
+                <p className='flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-2 md:py-1 
+                rounded-full cursor-pointer hover:bg-gray-500/20 active:bg-gray-500/30 transition touch-manipulation'>
                     <Image src={assets.deepthink_icon} alt="Deepthink Icon" className='h-5' />
-                    DeepThink (R1)
+                    <span className="hidden sm:inline">DeepThink (R1)</span>
+                    <span className="sm:hidden">R1</span>
                 </p>
-                <p className='flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-1 
-                rounded-full cursor-pointer hover:bg-gray-500/20 transition'>
+                <p className='flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-2 md:py-1 
+                rounded-full cursor-pointer hover:bg-gray-500/20 active:bg-gray-500/30 transition touch-manipulation'>
                     <Image src={assets.search_icon} alt="Search Icon" className='h-5' />
-                    Search (R1)
+                    <span className="hidden sm:inline">Search (R1)</span>
+                    <span className="sm:hidden">Search</span>
                 </p>
             </div>
 

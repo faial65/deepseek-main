@@ -16,17 +16,43 @@ export async function GET(request) {
 
         await connectDB();
         
-        // Get the most recent document for this user
-        // In a fixed-document system, you could hardcode a specific document ID
-        const document = await Document.findOne({ 
-            userId, 
+        // Get the system document (pre-uploaded master document)
+        let document = await Document.findOne({ 
             isActive: true 
         }).sort({ createdAt: -1 });
+
+        // If no document exists, try to auto-setup from master file
+        if (!document) {
+            console.log("No active document found, attempting auto-setup...");
+            
+            try {
+                // Call setup endpoint internally
+                const setupResponse = await fetch(`${request.nextUrl.origin}/api/setup/document`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const setupResult = await setupResponse.json();
+                
+                if (setupResult.success) {
+                    // Retry finding the document
+                    document = await Document.findOne({ 
+                        isActive: true 
+                    }).sort({ createdAt: -1 });
+                } else {
+                    console.log("Auto-setup failed:", setupResult.message);
+                }
+            } catch (setupError) {
+                console.log("Auto-setup error:", setupError.message);
+            }
+        }
 
         if (!document) {
             return NextResponse.json({
                 success: false,
-                message: "No default document found. Please upload your 400-page document first."
+                message: "No knowledge base found. Please contact admin to upload the master document file."
             }, { status: 404 });
         }
 

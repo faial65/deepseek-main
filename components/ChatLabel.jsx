@@ -65,19 +65,19 @@ const ChatLabel = ({ openMenu, setOpenMenu }) => {
             {chats?.map((chat) => (
                 <div 
                     key={chat._id} 
-                    className={`flex items-center justify-between p-2 text-white/80
-                    hover:bg-white/10 rounded-lg text-sm group cursor-pointer transition-colors
+                    className={`flex items-center justify-between p-3 md:p-2 text-white/80
+                    hover:bg-white/10 active:bg-white/15 rounded-lg text-sm group cursor-pointer transition-colors touch-manipulation
                     ${selectedChat?._id === chat._id ? 'bg-white/10' : ''}`}
                     onClick={() => handleChatSelect(chat)}>
                     <p className='group-hover:max w-5/6 truncate' title={chat.name || 'New Chat'}>
                         {chat.name || 'New Chat'}
                     </p>
-                    <div className='group relative flex items-center justify-center h-6 w-6 
-                    aspect-square hover:bg-black/80 rounded-lg'>
+                    <div className='group relative flex items-center justify-center h-8 w-8 md:h-6 md:w-6 
+                    aspect-square hover:bg-black/80 rounded-lg touch-manipulation'>
                         <Image 
                             src={assets.three_dots} 
                             alt='three dots' 
-                            className={`w-4 ${openMenu.id === chat._id && openMenu.open ? '' : 'hidden'} group-hover:block cursor-pointer`}
+                            className="w-4 cursor-pointer block md:hidden md:group-hover:block"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleMenuToggle(chat._id);
@@ -88,16 +88,16 @@ const ChatLabel = ({ openMenu, setOpenMenu }) => {
                             <div onClick={(e) => {
                                 e.stopPropagation();
                                 renameHandler(chat._id);
-                            }} className='flex items-center gap-2 hover:bg-white/10 
-                                    px-3 py-2 rounded-lg cursor-pointer'>
+                            }} className='flex items-center gap-2 hover:bg-white/10 active:bg-white/20
+                                    px-3 py-3 md:py-2 rounded-lg cursor-pointer touch-manipulation'>
                                 <Image src={assets.pencil_icon} alt='pencil icon' className='w-4' />
                                 <p>Rename</p>
                             </div>
                             <div onClick={(e) => {
                                 e.stopPropagation();
                                 deleteHandler(chat._id);
-                            }} className='flex items-center gap-2 hover:bg-white/10 px-3 py-2
-                            rounded-lg cursor-pointer'>
+                            }} className='flex items-center gap-2 hover:bg-white/10 active:bg-white/20 px-3 py-3 md:py-2
+                            rounded-lg cursor-pointer touch-manipulation'>
                                 <Image src={assets.delete_icon} alt='delete icon' className='w-4' />
                                 <p>Delete</p>
                             </div>

@@ -5,7 +5,7 @@
 }
 
 html{
-  @apply scroll-smooth;
+  scroll-behavior: smooth;
 }
 
 ::-webkit-scrollbar{
@@ -24,4 +24,23 @@ code{
 }
 pre{
   border-radius: 10px !important;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  .touch-friendly {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Show hover elements on mobile */
+  .mobile-show {
+    opacity: 0.7 !important;
+  }
+  
+  /* Better button targets for mobile */
+  .mobile-button {
+    padding: 12px;
+    margin: 4px;
+  }
 }

@@ -177,10 +177,9 @@ async function performFreeRAG(documentId, query, userId) {
     try {
         console.log("Free RAG: Starting retrieval for query:", query);
         
-        // Find the document
+        // Find the document - now works with global documents
         const document = await Document.findOne({ 
             _id: documentId, 
-            userId, 
             isActive: true 
         });
         

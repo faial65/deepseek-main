@@ -52,21 +52,8 @@ export default function Home() {
             <p className="text-2xl font-medium">Welcome to FaisalAI</p>
           </div>
           <p className="text-sm mt-2">
-            {selectedDocument 
-              ? `Ask me anything about: ${selectedDocument.filename}` 
-              : "Loading knowledge base..."
-            }
+            How can I help you today?
           </p>
-          {selectedDocument && (
-            <div className="mt-4 p-4 bg-green-600/20 border border-green-600/30 rounded-xl max-w-md">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">📚</span>
-                <span className="text-green-400 font-medium">Knowledge Base Ready</span>
-              </div>
-              <p className="text-white/80 text-sm">{selectedDocument.filename}</p>
-              <p className="text-white/60 text-xs mt-1">Ask me anything about this document</p>
-            </div>
-          )}
           </>
         ):
         (
