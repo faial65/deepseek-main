@@ -1,11 +1,10 @@
 export const maxDuration = 60;
-export const dynamic = 'force-dynamic';
-
 import connectDB from "@/config/db";
 import Chat from "@/models/Chat";
 import Document from "@/models/Document";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
 export async function POST(req) {
     try {
@@ -16,9 +15,6 @@ export async function POST(req) {
                 message: "Groq API key not configured"
             }, { status: 500 });
         }
-
-        // Dynamically import OpenAI to avoid build-time initialization
-        const { default: OpenAI } = await import("openai");
 
         // Initialize Groq client with API key
         const groq = new OpenAI({
