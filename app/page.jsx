@@ -12,8 +12,16 @@ export default function Home() {
   const [expand, setExpand] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const {selectedChat, selectedDocument} = useAppContext();
+  const {selectedChat, selectedDocument, createNewChat} = useAppContext();
   const containerRef = useRef(null);
+
+  const handleNewChat = async () => {
+    try {
+      await createNewChat();
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+    }
+  };
 
   useEffect(()=>{
     if(selectedChat){
@@ -40,7 +48,7 @@ export default function Home() {
           justify-between w-full">
           <Image onClick={() => (expand ? setExpand(false) : setExpand(true))}
           className="rotate-180" src={assets.menu_icon} alt="Menu Icon" />
-          <Image className="opacity-70" src={assets.chat_icon} alt="Chat Icon" />
+          <Image onClick={handleNewChat} className="opacity-70 cursor-pointer" src={assets.chat_icon} alt="Chat Icon" />
          </div>
 
         {messages.length === 0?(

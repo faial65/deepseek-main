@@ -6,11 +6,6 @@ import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const groq = new OpenAI({
-    baseURL: 'https://api.groq.com/openai/v1',
-    apiKey: process.env.GROQ_API_KEY
-});
-
 export async function POST(req) {
     try {
         // Check if API key is configured
@@ -20,6 +15,12 @@ export async function POST(req) {
                 message: "Groq API key not configured"
             }, { status: 500 });
         }
+
+        // Initialize Groq client with API key
+        const groq = new OpenAI({
+            baseURL: 'https://api.groq.com/openai/v1',
+            apiKey: process.env.GROQ_API_KEY
+        });
 
         const { userId } = getAuth(req);
 
