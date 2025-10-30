@@ -78,7 +78,7 @@ export async function POST(req) {
         }));
 
         if (contextFromDocuments) {
-            // Enhance the prompt with document context
+            // Enhance the LAST user message with document context while keeping conversation history
             const enhancedPrompt = `You have access to relevant content from the user's document. Use this context to provide accurate and specific answers.
 
 DOCUMENT CONTEXT:
@@ -88,11 +88,13 @@ USER QUESTION: ${prompt}
 
 Please provide a comprehensive answer based on the document context. If the answer cannot be found in the provided context, please mention that.`;
 
-            // Use only the enhanced prompt for better focus
-            cleanMessages.splice(0, cleanMessages.length, { role: "user", content: enhancedPrompt });
+            // Replace only the last user message with the enhanced version (keep conversation history)
+            if (cleanMessages.length > 0 && cleanMessages[cleanMessages.length - 1].role === 'user') {
+                cleanMessages[cleanMessages.length - 1].content = enhancedPrompt;
+            }
         }
 
-        console.log("Groq API: Calling Groq API...");
+        console.log("Groq API: Calling Groq API with", cleanMessages.length, "messages...");
 
         // Call the Groq API to get a chat completion
         const completion = await groq.chat.completions.create({
@@ -119,6 +121,51 @@ Please provide a comprehensive answer based on the document context. If the answ
         await data.save();
 
         console.log("Groq API: Successfully saved messages to chat");
+
+        // Auto-generate a short title for new chats using the Groq client (only if chat has default name)
+        try {
+            const hasDefaultName = !data.name || data.name === "New Chat";
+            if (hasDefaultName && process.env.GROQ_API_KEY) {
+                console.log('Groq API: Chat has default name, generating title...');
+                
+                // Use the most recent user and assistant messages to create a concise title
+                // Use data.messages which now includes the newly added assistant reply
+                const reversed = [...data.messages].reverse();
+                const lastUser = reversed.find(m => m.role === 'user');
+                const lastAssistant = reversed.find(m => m.role === 'assistant');
+
+                console.log('Groq API: Last user message:', lastUser?.content?.substring(0, 50));
+                console.log('Groq API: Last assistant message:', lastAssistant?.content?.substring(0, 50));
+
+                if (lastUser && lastAssistant) {
+                    const titlePrompt = `You are a helpful assistant. Create a short, descriptive title (3-6 words) for this conversation. Return ONLY the title, no extra text or punctuation.\n\nUser: ${lastUser.content}\nAssistant: ${lastAssistant.content}`;
+
+                    const titleResp = await groq.chat.completions.create({
+                        model: 'llama-3.1-8b-instant',
+                        messages: [{ role: 'user', content: titlePrompt }],
+                        temperature: 0.2,
+                        max_tokens: 30
+                    });
+
+                    const rawTitle = titleResp?.choices?.[0]?.message?.content || '';
+                    const title = rawTitle.split('\n')[0].trim().replace(/^['"]|['"]$/g, '').slice(0, 80);
+
+                    if (title) {
+                        data.name = title;
+                        await data.save();
+                        console.log('Groq API: Auto-generated chat title (Groq):', title);
+                    } else {
+                        console.log('Groq API: Empty title generated, keeping default');
+                    }
+                } else {
+                    console.log('Groq API: Missing user or assistant message, skipping title generation');
+                }
+            } else {
+                console.log('Groq API: Skipping title generation - chat already has custom name or API key missing');
+            }
+        } catch (titleErr) {
+            console.error('Groq API: Title generation error:', titleErr);
+        }
 
         return NextResponse.json({
             success: true,

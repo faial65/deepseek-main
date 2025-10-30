@@ -72,7 +72,7 @@ export default function Home() {
           <div ref = {containerRef}
           className="relative flex flex-col items-center justify-start w-full
           mt-20 max-h-screen overflow-y-auto">
-            <p className="fixed top-8 border border-transparent hover:
+            <p className="fixed top-8 border hover:
             border-gray-500/50 py-1 px-2 rounded-lg font-semibold
             mb-6">{selectedChat?.name}</p>
             {messages.map((msg, index) => (
