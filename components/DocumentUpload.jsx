@@ -77,7 +77,25 @@ const DocumentUpload = ({ isOpen, onClose, onDocumentUploaded }) => {
 
             if (response.data.success) {
                 toast.success('Document uploaded successfully!');
-                onDocumentUploaded(response.data.data);
+                // After upload, fetch the fully-saved document (with chunks/embeddings)
+                try {
+                    const id = response.data.data.documentId || response.data.data._id;
+                    if (id) {
+                        const { data: fullResp } = await axios.get(`/api/documents/get?documentId=${id}`);
+                        if (fullResp.success) {
+                            onDocumentUploaded(fullResp.data);
+                        } else {
+                            // Fallback to minimal response if full fetch fails
+                            onDocumentUploaded(response.data.data);
+                        }
+                    } else {
+                        onDocumentUploaded(response.data.data);
+                    }
+                } catch (fetchErr) {
+                    console.error('Failed to fetch full document after upload:', fetchErr);
+                    onDocumentUploaded(response.data.data);
+                }
+
                 onClose();
             } else {
                 toast.error(response.data.message || 'Upload failed');
